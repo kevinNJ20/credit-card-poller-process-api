@@ -1,0 +1,48 @@
+#%RAML 1.0
+title: Credit Card Poller Process API
+version: 1.0.0
+baseUri: http://localhost:8082/api/process/pollers/credit-card
+mediaType: application/json
+
+documentation:
+  - title: Overview
+    content: API de processus pour synchroniser périodiquement les données de cartes de crédit vers Global Data
+
+types:
+  SyncResult:
+    type: object
+    properties:
+      success: boolean
+      recordsProcessed: integer
+      recordsCreated: integer
+      recordsUpdated: integer
+      errors:
+        type: array
+        items: string
+  ErrorResponse:
+    type: object
+    properties:
+      error:
+        type: object
+        properties:
+          code: string
+          message: string
+
+/sync:
+  displayName: Synchronization
+  
+  /cards:
+    displayName: Sync Cards
+    post:
+      displayName: Trigger Card Sync
+      description: Déclenche manuellement la synchronisation des cartes depuis Credit Card System
+      responses:
+        200:
+          body:
+            application/json:
+              type: SyncResult
+        400:
+          body:
+            application/json:
+              type: ErrorResponse
+

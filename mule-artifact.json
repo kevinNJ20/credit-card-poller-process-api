@@ -1,0 +1,7 @@
+{
+  "name": "credit-card-poller-process-api",
+  "minMuleVersion": "4.10.0",
+  "javaSpecificationVersions": [
+    "17"
+  ]
+}

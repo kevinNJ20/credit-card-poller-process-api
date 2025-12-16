@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:http="http://www.mulesoft.org/schema/mule/http"
+  xmlns:scheduler="http://www.mulesoft.org/schema/mule/scheduler"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+  http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+  http://www.mulesoft.org/schema/mule/scheduler http://www.mulesoft.org/schema/mule/scheduler/current/mule-scheduler.xsd">
+
+  <!-- Scheduled Flow: Sync Cards Periodically -->
+  <flow name="scheduled-sync-cards-flow" doc:name="scheduled-sync-cards-flow">
+    <scheduler doc:name="Scheduler">
+      <scheduling-strategy>
+        <fixed-frequency frequency="${scheduler.frequency}" startDelay="${scheduler.startDelay}"/>
+      </scheduling-strategy>
+    </scheduler>
+    
+    <logger level="INFO" message="Starting scheduled card sync" doc:name="Log Start"/>
+    
+    <flow-ref name="sync-cards-subflow" doc:name="Sync Cards"/>
+    
+    <logger level="INFO" message="Completed scheduled card sync" doc:name="Log Complete"/>
+  </flow>
+
+  <!-- POST /sync/cards - Business Logic Flow -->
+  <flow name="sync-cards-business-logic" doc:name="sync-cards-business-logic">
+    <flow-ref name="sync-cards-subflow" doc:name="Sync Cards"/>
+    
+    <ee:transform doc:name="Transform Response">
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Card sync completed",
+  syncId: uuid(),
+  timestamp: now()
+}]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+
+    <http:response statusCode="202" doc:name="HTTP Response"/>
+  </flow>
+
+  <!-- Subflow: Sync Cards -->
+  <sub-flow name="sync-cards-subflow" doc:name="sync-cards-subflow">
+    <try doc:name="Try">
+      <http:request method="GET" config-ref="Credit_Card_System_API_Config" path="/api/creditcards/cards" doc:name="Get Cards from Credit Card System">
+        <http:query-params><![CDATA[#[{
+          "limit": "100",
+          "offset": "0"
+        }]]]></http:query-params>
+      </http:request>
+
+      <foreach doc:name="For Each Card">
+        <ee:transform doc:name="Transform to Global Card Format">
+          <ee:message>
+            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var card = payload
+---
+{
+  globalId: null,
+  cardNumber: card.cardNumber,
+  cardType: card.cardType,
+  cardNetwork: card.cardNetwork,
+  customerGlobalId: card.customerId,
+  accountGlobalId: card.accountId,
+  cardholderName: card.cardholderName,
+  expirationDate: card.expirationDate,
+  status: card.status,
+  creditLimit: card.creditLimit,
+  availableCredit: card.availableCredit,
+  controls: card.controls default {},
+  issuedDate: card.issuedDate
+}]]></ee:set-payload>
+          </ee:message>
+        </ee:transform>
+        
+        <http:request method="POST" config-ref="Global_Financial_Account_System_API_Config" path="/api/global/accounts/cards" doc:name="Upsert to Global Financial Account">
+          <http:body><![CDATA[#[payload]]]></http:body>
+        </http:request>
+      </foreach>
+      
+      <error-handler>
+        <on-error-continue type="HTTP:REQUEST" enableNotifications="true" logException="true" doc:name="Continue on Error">
+          <logger level="ERROR" message="Error syncing card: #[error.description]" doc:name="Log Error"/>
+        </on-error-continue>
+      </error-handler>
+    </try>
+  </sub-flow>
+
+</mule>
