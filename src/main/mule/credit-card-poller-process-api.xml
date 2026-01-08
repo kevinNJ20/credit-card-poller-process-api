@@ -41,7 +41,7 @@ output application/json
       </ee:message>
     </ee:transform>
 
-    <http:response statusCode="202" doc:name="HTTP Response"/>
+    <set-variable value="202" doc:name="httpStatus" doc:id="d3d4a356-1b30-4ea3-bf48-82e66c597694" variableName="httpStatus"/>
   </flow>
 
   <!-- Subflow: Sync Cards -->
