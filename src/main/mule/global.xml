@@ -27,7 +27,7 @@ http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/m
   <http:request-config name="Global_Financial_Account_System_API_Config" doc:name="Global Financial Account System API Config">
     <http:request-connection host="${global.financial.account.api.host}" port="${global.financial.account.api.port}" />
   </http:request-config>
-	<apikit:config outboundHeadersMapName="outboundHeadersMapName" httpStatusVarName="httpStatus" doc:name="Router" doc:id="2b5ea207-ce57-4a6f-a27d-74e64b37514c" name="credit-card-poller-process-api-config" api="credit-card-poller-process-api.raml" />
+	<apikit:config outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" doc:name="Router" doc:id="2b5ea207-ce57-4a6f-a27d-74e64b37514c" name="credit-card-poller-process-api-config" api="credit-card-poller-process-api.raml" />
 
 
 </mule>
